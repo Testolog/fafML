@@ -1,7 +1,8 @@
-import requests
-import pandas as pd
 import re
 from urllib.parse import urlparse
+
+import pandas as pd
+import requests
 
 try:
     from BeautifulSoup import BeautifulSoup
@@ -120,9 +121,14 @@ class FAFParsers:
         # return df_base
 
 
+def test():
+    pass
+
+
 if __name__ == '__main__':
     parser = FAFParsers()
-    import sys, os
+    import sys
+    import os
 
     path_out = sys.argv[1]
     if os.path.exists(path_out):
