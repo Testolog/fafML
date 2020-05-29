@@ -45,5 +45,4 @@ def update_files():
 
 if __name__ == '__main__':
     user_auth = {"Authorization": "token " + sys.argv[1] if len(sys.argv) >= 2 else environ["GIT_READ_TOKEN"]}
-    print(user_auth)
     download_file(user_auth)
