@@ -52,7 +52,7 @@ class BlockType(object):
                 key, value = str(single_line).split(KEY_VALUE_DELIMITER)
                 self.parsed[key.strip()] = value.replace(",", "").replace("'", "").strip()
             else:
-                self.parsed['_collection'] = single_line.replace(",", "").replace("'", "").strip()
+                self.parsed['value'] = single_line.replace(",", "").replace("'", "").strip()
         else:
             block_inst = None
             for potential_block in self.content[1:-1]:
@@ -69,24 +69,22 @@ class BlockType(object):
                         key, value = str(potential_block).split(KEY_VALUE_DELIMITER)
                         self.parsed[key.strip()] = value.replace(",", "").replace("'", "").strip()
                     elif BlockType.is_value(potential_block):
-                        self.parsed["value"] = potential_block.replace(",", "").replace("'", "").strip()
-
-                # for raw in self.content[1:-1]:
-                #     _inst = BlockType.get_instances(raw)
-                #     if not _inst.is_complete():
-                #
+                        if "value" not in self.parsed:
+                            self.parsed["value"] = [potential_block.replace(",", "").replace("'", "").strip()]
+                        else:
+                            self.parsed["value"].append(potential_block.replace(",", "").replace("'", "").strip())
 
     def flat_att(self):
         for block in self.nested_blocks:
             block.parse_block()
+            block.flat_att()
             if len(block.nested_blocks) == 0:
                 self.parsed[block.structure_name] = block.parsed
-            else:
-                block.flat_att()
+
 
     @staticmethod
     def is_block(line):
-        return START_BLOCK_CHART in line
+        return True if re.match(r"[\w\s=]+{", line) else False
 
     @staticmethod
     def is_field(line):
@@ -122,6 +120,7 @@ class BPReader(object):
                     else:
                         if crr_block:
                             if crr_block.is_complete():
+                                print(crr_block.structure_name)
                                 crr_block.parse_block()
                                 crr_block.flat_att()
                                 high_content.append(crr_block)
