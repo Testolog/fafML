@@ -4,7 +4,7 @@ from os import path, remove, environ
 
 from requests import get
 
-from faf_ml.constant import GITHUB_UNIT_URL, BP_PATH, FAILED_FILE, SUCCESS_FILE
+from constant import GITHUB_UNIT_URL, BP_PATH, FAILED_FILE, SUCCESS_FILE
 
 
 def download_file(auth_header):
