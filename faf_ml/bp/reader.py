@@ -22,7 +22,3 @@ def read(file_path):
         result_block.append(crr_block.process())
     return result_block
 
-
-if __name__ == '__main__':
-    res = read("../../XSL0105_unit.bp")
-    print(res)
