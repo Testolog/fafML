@@ -21,37 +21,32 @@ class BlockBuilder(object):
 
     def __init__(self):
         self.current_block: Optional[Block] = None
-        self.valued_line = None
+        self.valued_line = ""
         self.list_blocks: List[Block] = []
-        self.run_time = []
+        self.run_time: List[Block] = []
 
     def append_line(self, index, line):
-        self.valued_line = line
+        line = re.sub(r"\s+", "", line)
         if not self.current_block:
-            self.current_block = create_block(index, self.valued_line)
+            self.current_block = create_block(index, line)
         else:
-            if self.current_block.block_type is BlockType.BLOCK or self.current_block.block_type is BlockType.OBJECT:
-                if not self.current_block.is_complete():
-                    self.current_block.append_line(index, self.valued_line)
-                else:
-                    self.current_block.end = index - 1
-                    self.run_time.append(process(self.current_block))
-                    self.current_block = create_block(index, self.valued_line)
+            new_block = create_block(index, line)
+            if not self.current_block.is_complete():
+                self.current_block.append_block(new_block)
             else:
-                self.run_time.append(process(self.current_block))
-                self.current_block = create_block(index, self.valued_line)
+                self.run_time.append(self.current_block)
+                self.current_block = new_block
         return self
 
-    def try_to_close_block(self, index):
+    def try_to_close_block(self):
         if self.current_block and self.current_block.is_complete():
-            self.current_block.end = index
-            self.run_time.append(process(self.current_block))
+            self.run_time.append(self.current_block)
             self.current_block = None
         return self
 
     # todo flat tree of bloks
     def process(self):
-        return self.run_time
+        return [_.process() for _ in self.run_time]
 
 
 class Block(object):
@@ -63,8 +58,9 @@ class Block(object):
         self.start: int = start_line
         self.end: int = start_line
         self.parsed = {}
-        self.nested_blocks: List[Block] = []
         self.level = 0
+        self.level_block: List[Block] = []
+        self.value_block: List[Block] = []
 
     def open_block(self):
         self.level += 1
@@ -75,15 +71,53 @@ class Block(object):
     def is_complete(self):
         return self.level == 0 and self.structure_name and len(self.content) != 0
 
-    def append_line(self, index, line):
-        if START_BLOCK_CHART in line:
+    def append_line(self, line_number, row):
+        if START_BLOCK_CHART in row:
             self.open_block()
-        elif END_BLOCK_CHART in line:
+        elif END_BLOCK_CHART in row:
             self.close_block()
-        self.content.append((index, line.strip()))
+        self.end = line_number
+        self.content.append((line_number, row))
+
+    def append_block(self, block):
+        active_block = get_first_not_closed_block(self.level_block, self)
+        if block.block_type is BlockType.BLOCK or block.block_type is BlockType.OBJECT:
+            active_block.level_block.append(block)
+        else:
+            if block.block_type is not BlockType.NOT_PROCESSED:
+                active_block.value_block.append(block)
+        self + block
+        self * block
+
+    def process(self):
+        for vle_b in self.value_block:
+            if vle_b.block_type is BlockType.VALUE:
+                if self.structure_name in self.parsed:
+                    self.parsed[self.structure_name].append(process(vle_b))
+                else:
+                    self.parsed[self.structure_name] = [process(vle_b)]
+            else:
+                if self.structure_name in self.parsed:
+                    self.parsed[self.structure_name].update(process(vle_b))
+                else:
+                    self.parsed[self.structure_name] = process(vle_b)
+        for lvl_b in self.level_block:
+            lvl_b.process()
+            self.parsed[lvl_b.structure_name] = lvl_b.parsed
+        return self
 
     def __str__(self):
         return "point:{}, type:{}, range:[{}, {}], ".format(self.structure_name, self.block_type, self.start, self.end)
+
+    def __add__(self, other: 'Block'):
+        for numb, line in other.content:
+            self.append_line(numb, line)
+
+    def __mul__(self, other: 'Block'):
+        block_start_ = [_ for _ in self.level_block if not _.is_complete() and _.start is not other.start]
+        for lvl_b in block_start_:
+            lvl_b + other
+            lvl_b * other
 
 
 def process(block: Block) -> Block:
@@ -94,37 +128,28 @@ def clean_string(line: str):
     return re.sub(r"[,{}'\s]+", "", line)
 
 
-def field_processor(block: Block) -> Block:
+def get_first_not_closed_block(blocks: List[Block], default: Optional[Block] = None) -> Block:
+    last_block = next((b for b in blocks if not b.is_complete()), default)
+    if last_block:
+        if any([not _.is_complete() for _ in last_block.level_block]):
+            last_block = get_first_not_closed_block(last_block.level_block, last_block)
+    return last_block
+
+
+def field_processor(block: Block) -> dict:
     single_line = block.content[0][1]
     key, value = clean_string(str(single_line)).split(KEY_VALUE_DELIMITER)
-    block.parsed[key.strip()] = value
-    return block
+    return {key: value}
 
 
-def object_processor(block: Block) -> Block:
-    return block_processor(block)
-
-
-def block_processor(block: Block) -> Block:
-    nested_builder = BlockBuilder()
-    for index, potential_block in block.content[1:-1]:
-        nested_builder \
-            .append_line(index, potential_block) \
-            .try_to_close_block(index)
-    block.nested_blocks = nested_builder.process()
-    return block
-
-
-def value_processor(block: Block) -> Block:
-    single_line = block.content[0][1]
-    block.parsed[block.structure_name] = clean_string(str(single_line))
-    return block
+def value_processor(block: Block) -> str:
+    return clean_string(str(block.content[0][1]))
 
 
 def get_process(block: Block) -> Callable[[Block], Block]:
     switcher = {
-        BlockType.OBJECT: object_processor,
-        BlockType.BLOCK: block_processor,
+        # BlockType.OBJECT: object_processor,
+        # BlockType.BLOCK: block_processor,
         BlockType.VALUE: value_processor,
         BlockType.FIELD: field_processor
     }
@@ -132,15 +157,15 @@ def get_process(block: Block) -> Callable[[Block], Block]:
 
 
 def is_block(line):
-    return True if re.match(r"[\w\s]+=[\w\s]*?\{", line) else False
+    return True if re.match(r"\w+=\w*?\{", line, re.IGNORECASE | re.MULTILINE) else False
 
 
 def is_global(line):
-    return True if re.match(r"[\w\s]+\{", line) else False
+    return True if re.match(r"\w+\{", line, re.IGNORECASE | re.MULTILINE) else False
 
 
 def is_object(line):
-    return True if re.match(r"\s*\{\s*", line) else False
+    return True if re.match(r"{", line, re.IGNORECASE | re.MULTILINE) else False
 
 
 def is_field(line):
@@ -148,34 +173,76 @@ def is_field(line):
 
 
 def is_value(line):
-    return True if re.match(r"[\S\D]+,", line) else False
+    return True if re.match(r"[\w']+,", line, re.IGNORECASE | re.MULTILINE) else False
 
 
-def create_block(index, line) -> Block:
+def create_block(line_number, line) -> Block:
     if is_global(line):
         key = clean_string(line)
-        inst = Block(key.strip(), BlockType.BLOCK, index)
-        inst.append_line(index, line)
+        inst = Block(key.strip(), BlockType.BLOCK, line_number)
+        # inst.append_line(index, line)
         return inst
     if is_block(line):
         key, value = clean_string(line).split(KEY_VALUE_DELIMITER)
-        inst = Block(key.strip(), BlockType.BLOCK, index)
-        inst.append_line(index, line)
+        inst = Block(key.strip(), BlockType.BLOCK, line_number)
+        inst.append_line(line_number, line)
         return inst
     elif is_object(line):
-        inst = Block(BlockType.OBJECT.name, BlockType.OBJECT, index)
-        inst.append_line(index, line)
+        inst = Block(BlockType.OBJECT.name, BlockType.OBJECT, line_number)
+        inst.append_line(line_number, line)
         return inst
     elif is_field(line):
         key, value = clean_string(line).split(KEY_VALUE_DELIMITER)
-        inst = Block(key, BlockType.FIELD, index)
-        inst.append_line(index, line)
+        inst = Block(key, BlockType.FIELD, line_number)
+        inst.append_line(line_number, line)
         return inst
     elif is_value(line):
-        inst = Block(BlockType.VALUE.name, BlockType.VALUE, index)
-        inst.append_line(index, line)
+        inst = Block(BlockType.VALUE.name, BlockType.VALUE, line_number)
+        inst.append_line(line_number, line)
         return inst
     else:
-        inst = Block(BlockType.NOT_PROCESSED, BlockType.NOT_PROCESSED, index)
-        inst.append_line(index, line)
+        inst = Block(BlockType.NOT_PROCESSED, BlockType.NOT_PROCESSED, line_number)
+        inst.append_line(line_number, line)
         return inst
+
+
+if __name__ == '__main__':
+    t = """General = {
+        BuildBones = {
+            AimBone = 'Turret_Muzzle',
+            BuildEffectBones = {
+                'Turret_Muzzle',
+            },
+            PitchBone = 'Arm_Pitch',
+            YawBone = 'Arm_Yaw',
+        },
+        Category = 'Construction',
+        Classification = 'RULEUC_Engineer',
+        CommandCaps = {
+            RULEUCC_Attack = false,
+            RULEUCC_CallTransport = true,
+            RULEUCC_Capture = true,
+            RULEUCC_Guard = true,
+            RULEUCC_Move = true,
+            RULEUCC_Nuke = false,
+            RULEUCC_Patrol = true,
+            RULEUCC_Pause = true,
+            RULEUCC_Reclaim = true,
+            RULEUCC_Repair = true,
+            RULEUCC_RetaliateToggle = false,
+            RULEUCC_Stop = true,
+            RULEUCC_Transport = false,
+        },
+        ConstructionBar = true,
+        FactionName = 'Seraphim',
+        Icon = 'amph',
+        SelectionPriority = 3,
+        TechLevel = 'RULEUTL_Basic',
+        UnitName = '<LOC xsl0105_name>Iya-istle',
+        UnitWeight = 1,
+    }"""
+    bb = BlockBuilder()
+    for index, line in enumerate(t.splitlines()):
+        bb.append_line(index + 1, line).try_to_close_block()
+    p = bb.process()
+    print(p)
