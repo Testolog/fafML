@@ -1,3 +1,4 @@
+import json
 import os
 
 from bp.block import BlockBuilder
@@ -21,3 +22,8 @@ def read(file_path):
                 crr_block.append_line(index + 1, line).try_to_close_block()
         result_block[os.path.basename(path)] = [_.parsed for _ in crr_block.process()]
     return result_block
+
+
+if __name__ == '__main__':
+    flow_data = read("../data/test/XSL0105_unit.bp")
+    json.dump(flow_data, open("../data/test/XSL0105_unit.json", "w+"), indent=2)

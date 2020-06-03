@@ -1,0 +1,337 @@
+{
+  "XSL0105_unit.bp": [
+    {
+      "UnitBlueprint": {
+        "BuildIconSortPriority": "10",
+        "CollisionOffsetY": "-0.25",
+        "Description": "<LOCxsl0105_desc>Engineer",
+        "LifeBarHeight": "0.075",
+        "LifeBarOffset": "0.4",
+        "LifeBarSize": "0.5",
+        "SelectionCenterOffsetY": "-0.5",
+        "SelectionSizeX": "0.4",
+        "SelectionSizeZ": "0.4",
+        "SelectionThickness": "0.99",
+        "SizeX": "0.8",
+        "SizeY": "0.7",
+        "SizeZ": "0.8",
+        "StrategicIconName": "icon_land1_engineer",
+        "StrategicIconSortPriority": "105",
+        "AI": {
+          "TargetBones": [
+            "XSL0105"
+          ]
+        },
+        "Audio": {
+          "AmbientMove": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Move_Loop",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "CaptureLoop": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Capture_Loop",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "Construct": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Construct_Start",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "ConstructLoop": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Construct_Loop",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "Destroyed": {
+            "Bank": "XSL_Destroy",
+            "Cue": "XSL_Destroy_Land_Sml",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "HoverKilledOnWater": {
+            "Bank": "Explosions",
+            "Cue": "Expl_Water_Lrg_01",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "ReclaimLoop": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Reclaim_Loop",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "StartCapture": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Capture_Start",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "StartMove": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Move_Start",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "StartReclaim": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Reclaim_Start",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "StopMove": {
+            "Bank": "XSL",
+            "Cue": "XSL0105_Move_Stop",
+            "LodCutoff": "UnitMove_LodCutoff"
+          },
+          "UISelection": {
+            "Bank": "SeraphimSelect",
+            "Cue": "Seraphim_Select_Vehicle",
+            "LodCutoff": "UnitMove_LodCutoff"
+          }
+        },
+        "Categories": [
+          "PRODUCTFA",
+          "SELECTABLE",
+          "BUILTBYTIER1FACTORY",
+          "BUILTBYTIER2FACTORY",
+          "BUILTBYTIER3FACTORY",
+          "SERAPHIM",
+          "MOBILE",
+          "LAND",
+          "TECH1",
+          "CONSTRUCTION",
+          "ENGINEER",
+          "REPAIR",
+          "RECLAIM",
+          "CAPTURE",
+          "HOVER",
+          "VISIBLETORECON",
+          "RECLAIMABLE",
+          "PATROLHELPER",
+          "SHOWQUEUE"
+        ],
+        "Defense": {
+          "AirThreatLevel": "0",
+          "ArmorType": "Normal",
+          "EconomyThreatLevel": "0",
+          "Health": "125",
+          "MaxHealth": "125",
+          "RegenRate": "0",
+          "SubThreatLevel": "0",
+          "SurfaceThreatLevel": "0"
+        },
+        "Display": {
+          "SpawnRandomRotation": "true",
+          "UniformScale": "0.067",
+          "Abilities": [
+            "<LOCability_hover>Hover",
+            "<LOCability_engineeringsuite>EngineeringSuite"
+          ],
+          "IdleEffects": {
+            "Land": {
+              "Effects": {
+                "OBJECT_111": {
+                  "Scale": "0.55",
+                  "Type": "SeraphimGroundFX01",
+                  "Bones": [
+                    "XSL0105"
+                  ],
+                  "Offset": [
+                    "0",
+                    "-0.4",
+                    "0"
+                  ]
+                }
+              }
+            },
+            "Water": {
+              "Effects": {
+                "OBJECT_127": {
+                  "Scale": "0.55",
+                  "Type": "SeraphimGroundFX01",
+                  "Bones": [
+                    "XSL0105"
+                  ],
+                  "Offset": [
+                    "0",
+                    "-0.4",
+                    "0"
+                  ]
+                },
+                "OBJECT_139": {
+                  "Scale": "1.2",
+                  "Type": "SeaIdle02",
+                  "Bones": [
+                    "XSL0105"
+                  ]
+                }
+              }
+            }
+          },
+          "Mesh": {
+            "IconFadeInZoom": "130",
+            "LODs": {
+              "OBJECT_152": {
+                "LODCutoff": "80",
+                "LookupName": "/textures/environment/Falloff_seraphim_lookup.dds",
+                "ShaderName": "Seraphim"
+              },
+              "OBJECT_157": {
+                "AlbedoName": "xsl0105_lod1_albedo.dds",
+                "LODCutoff": "215",
+                "LookupName": "/textures/environment/Falloff_seraphim_lookup.dds",
+                "ShaderName": "Seraphim",
+                "SpecularName": "xsl0105_lod1_specteam.dds"
+              }
+            }
+          },
+          "MovementEffects": {
+            "Land": {
+              "Effects": {
+                "OBJECT_169": {
+                  "Scale": "0.55",
+                  "Type": "SeraphimGroundFX01",
+                  "Bones": [
+                    "XSL0105"
+                  ],
+                  "Offset": [
+                    "0",
+                    "-0.4",
+                    "0"
+                  ]
+                },
+                "OBJECT_181": {
+                  "Scale": "0.5",
+                  "Type": "GroundKickup01",
+                  "Bones": [
+                    "XSL0105"
+                  ]
+                }
+              }
+            },
+            "Water": {
+              "Effects": {
+                "OBJECT_192": {
+                  "Scale": "0.55",
+                  "Type": "SeraphimGroundFX01",
+                  "Bones": [
+                    "XSL0105"
+                  ],
+                  "Offset": [
+                    "0",
+                    "-0.4",
+                    "0"
+                  ]
+                },
+                "OBJECT_204": {
+                  "Scale": "0.5",
+                  "Type": "BackWake",
+                  "Bones": [
+                    "XSL0105"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "Economy": {
+          "BuildCostEnergy": "260",
+          "BuildCostMass": "52",
+          "BuildRate": "5",
+          "BuildTime": "260",
+          "MaxBuildDistance": "5",
+          "NeedToFaceTargetToBuild": "false--changedtomakeitbuildfaster",
+          "StorageEnergy": "0",
+          "StorageMass": "10",
+          "TeleportEnergyMod": "0.15",
+          "TeleportMassMod": "1",
+          "TeleportTimeMod": "0.01",
+          "BuildableCategory": [
+            "BUILTBYTIER1ENGINEERSERAPHIM"
+          ]
+        },
+        "General": {
+          "Category": "Construction",
+          "Classification": "RULEUC_Engineer",
+          "ConstructionBar": "true",
+          "FactionName": "Seraphim",
+          "Icon": "amph",
+          "SelectionPriority": "3",
+          "TechLevel": "RULEUTL_Basic",
+          "UnitName": "<LOCxsl0105_name>Iya-istle",
+          "UnitWeight": "1",
+          "BuildBones": {
+            "AimBone": "Turret_Muzzle",
+            "PitchBone": "Arm_Pitch",
+            "YawBone": "Arm_Yaw",
+            "BuildEffectBones": [
+              "Turret_Muzzle"
+            ]
+          },
+          "CommandCaps": {
+            "RULEUCC_Attack": "false",
+            "RULEUCC_CallTransport": "true",
+            "RULEUCC_Capture": "true",
+            "RULEUCC_Guard": "true",
+            "RULEUCC_Move": "true",
+            "RULEUCC_Nuke": "false",
+            "RULEUCC_Patrol": "true",
+            "RULEUCC_Pause": "true",
+            "RULEUCC_Reclaim": "true",
+            "RULEUCC_Repair": "true",
+            "RULEUCC_RetaliateToggle": "false",
+            "RULEUCC_Stop": "true",
+            "RULEUCC_Transport": "false"
+          }
+        },
+        "Intel": {
+          "VisionRadius": "18"
+        },
+        "Interface": {
+          "HelpText": "<LOCxsl0105_help>Engineer"
+        },
+        "Physics": {
+          "BackUpDistance": "4",
+          "BankingSlope": "0.5",
+          "DragCoefficient": "0.2",
+          "Elevation": "0.5",
+          "MaxAcceleration": "1.9",
+          "MaxBrake": "1.9",
+          "MaxSpeed": "1.9",
+          "MaxSpeedReverse": "0",
+          "MaxSteerForce": "1000",
+          "MeshExtentsX": "0.65",
+          "MeshExtentsY": "0.75",
+          "MeshExtentsZ": "0.65",
+          "MinSpeedPercent": "0",
+          "MotionType": "RULEUMT_Hover",
+          "RotateBodyWhileMoving": "true",
+          "RotateOnSpot": "true",
+          "RotateOnSpotThreshold": "0.1",
+          "TurnFacingRate": "120",
+          "TurnRadius": "0",
+          "TurnRate": "120",
+          "WobbleFactor": "0",
+          "WobbleSpeed": "0",
+          "BuildOnLayerCaps": {
+            "LAYER_Air": "false",
+            "LAYER_Land": "true",
+            "LAYER_Orbit": "false",
+            "LAYER_Seabed": "false",
+            "LAYER_Sub": "false",
+            "LAYER_Water": "false"
+          }
+        },
+        "Wreckage": {
+          "Blueprint": "/props/DefaultWreckage/DefaultWreckage_prop.bp",
+          "EnergyMult": "0",
+          "HealthMult": "0.9",
+          "MassMult": "0.9",
+          "ReclaimTimeMultiplier": "1",
+          "WreckageLayers": {
+            "Air": "false",
+            "Land": "true",
+            "Seabed": "true",
+            "Sub": "true",
+            "Water": "true"
+          }
+        }
+      }
+    }
+  ]
+}
