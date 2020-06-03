@@ -11,6 +11,7 @@ class BlockType(enum.Enum):
     FIELD = enum.auto()
     ARRAY = enum.auto()
     VALUE = enum.auto()
+    DELIMITER = enum.auto()
     NOT_PROCESSED = enum.auto()
 
     def __str__(self):
@@ -27,10 +28,10 @@ class BlockBuilder(object):
 
     def append_line(self, index, line):
         line = re.sub(r"\s+", "", line)
+        new_block = create_block(index, line)
         if not self.current_block:
-            self.current_block = create_block(index, line)
+            self.current_block = new_block
         else:
-            new_block = create_block(index, line)
             if not self.current_block.is_complete():
                 self.current_block.append_block(new_block)
             else:
@@ -84,14 +85,18 @@ class Block(object):
         if block.block_type is BlockType.BLOCK or block.block_type is BlockType.OBJECT:
             active_block.level_block.append(block)
         else:
-            if block.block_type is not BlockType.NOT_PROCESSED:
+            if block.block_type is not BlockType.DELIMITER and block.block_type is not BlockType.NOT_PROCESSED:
                 active_block.value_block.append(block)
+            elif block.block_type is BlockType.NOT_PROCESSED:
+                print("error line:[{}, {}] type {} content:{}".format(block.start, block.end, block.block_type.name,
+                                                                      " ".join([_[1] for _ in block.content])))
         self + block
         self * block
 
     def process(self):
         for vle_b in self.value_block:
             if vle_b.block_type is BlockType.VALUE:
+                self.block_type = BlockType.ARRAY
                 if self.structure_name in self.parsed:
                     self.parsed[self.structure_name].append(process(vle_b))
                 else:
@@ -103,7 +108,10 @@ class Block(object):
                     self.parsed[self.structure_name] = process(vle_b)
         for lvl_b in self.level_block:
             lvl_b.process()
-            self.parsed[lvl_b.structure_name] = lvl_b.parsed
+            if self.structure_name in self.parsed:
+                self.parsed[self.structure_name].update(lvl_b.parsed)
+            else:
+                self.parsed[self.structure_name] = lvl_b.parsed
         return self
 
     def __str__(self):
@@ -173,14 +181,18 @@ def is_field(line):
 
 
 def is_value(line):
-    return True if re.match(r"[\w']+,", line, re.IGNORECASE | re.MULTILINE) else False
+    return True if re.match(r"[\w'<>_\-\.]+,", line, re.IGNORECASE | re.MULTILINE) else False
+
+
+def is_delimiter(line):
+    return True if re.match(r"[},]+", line, re.IGNORECASE | re.MULTILINE) else False
 
 
 def create_block(line_number, line) -> Block:
     if is_global(line):
         key = clean_string(line)
         inst = Block(key.strip(), BlockType.BLOCK, line_number)
-        # inst.append_line(index, line)
+        inst.append_line(line_number, line)
         return inst
     if is_block(line):
         key, value = clean_string(line).split(KEY_VALUE_DELIMITER)
@@ -188,7 +200,7 @@ def create_block(line_number, line) -> Block:
         inst.append_line(line_number, line)
         return inst
     elif is_object(line):
-        inst = Block(BlockType.OBJECT.name, BlockType.OBJECT, line_number)
+        inst = Block("{}_{}".format(BlockType.OBJECT.name, line_number), BlockType.OBJECT, line_number)
         inst.append_line(line_number, line)
         return inst
     elif is_field(line):
@@ -198,6 +210,10 @@ def create_block(line_number, line) -> Block:
         return inst
     elif is_value(line):
         inst = Block(BlockType.VALUE.name, BlockType.VALUE, line_number)
+        inst.append_line(line_number, line)
+        return inst
+    elif is_delimiter(line):
+        inst = Block(BlockType.DELIMITER.name, BlockType.DELIMITER, line_number)
         inst.append_line(line_number, line)
         return inst
     else:

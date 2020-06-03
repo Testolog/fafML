@@ -5,7 +5,7 @@ from bp.constant import BP_EXTENSIONS
 
 
 def read(file_path):
-    result_block = []
+    result_block = {}
     if os.path.isdir(file_path):
         files = [os.path.join(root, _file) for root, dirs, files in os.walk(file_path) for _file in files if
                  BP_EXTENSIONS in _file]
@@ -18,7 +18,6 @@ def read(file_path):
         crr_block = BlockBuilder()
         with open(path, "r") as f:
             for index, line in enumerate(f):
-                crr_block.append_line(index + 1, line).try_to_close_block(index + 1)
-        result_block.append(crr_block.process())
+                crr_block.append_line(index + 1, line).try_to_close_block()
+        result_block[os.path.basename(path)] = [_.parsed for _ in crr_block.process()]
     return result_block
-
