@@ -1,6 +1,6 @@
 from unittest import TestCase, main
 
-from bp.block import BlockBuilder
+from faf_ml.bp.block import BlockBuilder
 
 
 class BPBuildersTestCases(TestCase):

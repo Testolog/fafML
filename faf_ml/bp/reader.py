@@ -1,8 +1,9 @@
 import json
 import os
+from typing import Dict, List
 
-from bp.block import BlockBuilder
-from bp.constant import BP_EXTENSIONS
+from faf_ml.bp.block import BlockBuilder, Block
+from faf_ml.bp.constant import BP_EXTENSIONS
 
 
 def read(file_path):
@@ -20,8 +21,12 @@ def read(file_path):
         with open(path, "r") as f:
             for index, line in enumerate(f):
                 crr_block.append_line(index + 1, line).try_to_close_block()
-        result_block[os.path.basename(path)] = [_.parsed for _ in crr_block.process()]
+        result_block[os.path.basename(path)] = crr_block.process()
     return result_block
+
+
+def writeToJson(bloks: Dict[str, List[Block]], **kwargs):
+    pass
 
 
 if __name__ == '__main__':

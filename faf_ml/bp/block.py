@@ -2,7 +2,7 @@ import enum
 import re
 from typing import List, Callable, Optional
 
-from bp.constant import *
+from faf_ml.bp.constant import *
 
 
 class BlockType(enum.Enum):
