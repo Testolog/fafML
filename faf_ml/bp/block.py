@@ -5,6 +5,8 @@ from typing import List, Callable, Optional
 from faf_ml.bp.constant import *
 
 
+# todo
+# 1. improve parser
 class BlockType(enum.Enum):
     OBJECT = enum.auto()
     BLOCK = enum.auto()
@@ -13,6 +15,7 @@ class BlockType(enum.Enum):
     VALUE = enum.auto()
     DELIMITER = enum.auto()
     NOT_PROCESSED = enum.auto()
+    COMMENT = enum.auto()
 
     def __str__(self):
         return self.name
@@ -146,7 +149,7 @@ def get_first_not_closed_block(blocks: List[Block], default: Optional[Block] = N
 
 def field_processor(block: Block) -> dict:
     single_line = block.content[0][1]
-    key, value = clean_string(str(single_line)).split(KEY_VALUE_DELIMITER)
+    key, value = clean_string(remove_comment(str(single_line))).split(KEY_VALUE_DELIMITER)
     return {key: value}
 
 
@@ -181,7 +184,15 @@ def is_field(line):
 
 
 def is_value(line):
-    return True if re.match(r"[\w'<>_\-\.]+,", line, re.IGNORECASE | re.MULTILINE) else False
+    return True if re.match(r"[\w'<>_\-\.\(\)\*]+,", line, re.IGNORECASE | re.MULTILINE) else False
+
+
+def is_comment(line):
+    return True if re.match(r"(#.+|--.+)", line, re.IGNORECASE | re.MULTILINE) else False
+
+
+def remove_comment(line):
+    return re.sub(r"((?<=\-\-)|(?<=\#)).+", "", line).replace("#", "").replace("--", "")
 
 
 def is_delimiter(line):
@@ -194,9 +205,13 @@ def create_block(line_number, line) -> Block:
         inst = Block(key.strip(), BlockType.BLOCK, line_number)
         inst.append_line(line_number, line)
         return inst
-    if is_block(line):
+    elif is_block(line):
         key, value = clean_string(line).split(KEY_VALUE_DELIMITER)
         inst = Block(key.strip(), BlockType.BLOCK, line_number)
+        inst.append_line(line_number, line)
+        return inst
+    elif is_comment(line):
+        inst = Block(BlockType.COMMENT.name, BlockType.NOT_PROCESSED, line_number)
         inst.append_line(line_number, line)
         return inst
     elif is_object(line):
@@ -204,7 +219,7 @@ def create_block(line_number, line) -> Block:
         inst.append_line(line_number, line)
         return inst
     elif is_field(line):
-        key, value = clean_string(line).split(KEY_VALUE_DELIMITER)
+        key, value = clean_string(remove_comment(line)).split(KEY_VALUE_DELIMITER)
         inst = Block(key, BlockType.FIELD, line_number)
         inst.append_line(line_number, line)
         return inst
