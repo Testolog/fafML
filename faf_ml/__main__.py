@@ -6,7 +6,7 @@ from pathlib import Path
 from faf_ml.bp.constant import BP_EXTENSIONS
 from faf_ml.bp.reader import read_file
 from faf_ml.bp.repository import download_file, create_list_to_upload
-from faf_ml.constant import BP_RAW_PATH, BP_JSON_PATH
+from faf_ml.constant import BP_RAW_PATH, BP_JSON_PATH, GLOBAL_NAME_UNIT
 # todo
 # 1.append base conditional to check what is going on
 # 2.append sqllite for tracking changes between version in local repo
@@ -40,9 +40,15 @@ def convert_to_json():
              BP_EXTENSIONS in _file]
     for path in files:
         content = read_file(path)
-        json.dump([_.parsed for _ in content],
-                  open(os.path.join(json_location, os.path.splitext(os.path.basename(path))[0]) + ".json", "w+"),
-                  indent=2)
+        for b in [_.parsed for _ in content]:
+            bl = []
+            if GLOBAL_NAME_UNIT in b:
+                bl.append(b[GLOBAL_NAME_UNIT])
+            else:
+                print(b)
+            json.dump(bl,
+                      open(os.path.join(json_location, os.path.splitext(os.path.basename(path))[0]) + ".json", "w+"),
+                      indent=2)
 
 
 if arg.git_token:

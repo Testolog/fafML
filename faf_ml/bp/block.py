@@ -91,8 +91,9 @@ class Block(object):
             if block.block_type is not BlockType.DELIMITER and block.block_type is not BlockType.NOT_PROCESSED:
                 active_block.value_block.append(block)
             elif block.block_type is BlockType.NOT_PROCESSED:
-                print("error line:[{}, {}] type {} content:{}".format(block.start, block.end, block.block_type.name,
-                                                                      " ".join([_[1] for _ in block.content])))
+                pass
+                # print("error line:[{}, {}] type {} content:{}".format(block.start, block.end, block.block_type.name,
+                #                                                       " ".join([_[1] for _ in block.content])))
         self + block
         self * block
 
