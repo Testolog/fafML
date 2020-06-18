@@ -220,7 +220,7 @@ UnitBlueprint {
         BuildRate = 5,
         BuildTime = 260,
         BuildableCategory = {
-            'BUILTBYTIER1ENGINEER SERAPHIM',
+            'BUILT BY TIER 1 ENGINEER SERAPHIM',
         },
         MaxBuildDistance = 5,
         NeedToFaceTargetToBuild = false, -- changed to make it build faster
