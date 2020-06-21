@@ -1,12 +1,13 @@
 import argparse
-import json
 import os
+import re
 from pathlib import Path
 
 from faf_ml.bp.constant import BP_EXTENSIONS
 from faf_ml.bp.reader import read_file
 from faf_ml.bp.repository import download_file, create_list_to_upload
-from faf_ml.constant import BP_RAW_PATH, BP_JSON_PATH, GLOBAL_NAME_UNIT
+from faf_ml.constant import BP_RAW_PATH, BP_JSON_PATH, GLOBAL_NAME_UNIT, STOP_FILE_NAMING
+from faf_ml.faf.tree_build import *
 # todo
 # 1.append base conditional to check what is going on
 # 2.append sqllite for tracking changes between version in local repo
@@ -51,6 +52,16 @@ def convert_to_json():
                       indent=2)
 
 
+def read_json(file_path="../../data/test"):
+    data = []
+    for root, _, files in os.walk(file_path):
+        for _file in files:
+            with open(os.path.join(root, _file), 'r') as f:
+                unit_id = re.findall(STOP_FILE_NAMING, os.path.basename(os.path.join(root, _file)))[0]
+                data.append((unit_id, json.load(f)))
+    return data
+
+
 if arg.git_token:
     token = arg.git_token
 elif "GIT_READ_TOKEN" in os.environ:
@@ -58,6 +69,13 @@ elif "GIT_READ_TOKEN" in os.environ:
 else:
     raise Exception("hello")
 
+# todo
 create_structure()
 create_repo()
 convert_to_json()
+all_units: List[DataFrame] = []
+for _id, content in read_json(json_location):
+    for data in content:
+        lvl_df = build_multiple_lvl_df(data, _id, PROCESS_COLUMN)
+        all_units.append(lvl_df)
+df = zip_units_dfs(all_units)

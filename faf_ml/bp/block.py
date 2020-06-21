@@ -7,6 +7,7 @@ from faf_ml.bp.constant import *
 
 # todo
 # 1. improve parser
+# 2. counter for objects blocks
 class BlockType(enum.Enum):
     OBJECT = enum.auto()
     BLOCK = enum.auto()
@@ -30,8 +31,8 @@ class BlockBuilder(object):
         self.run_time: List[Block] = []
 
     def append_line(self, index, line):
-        line = re.sub(r"\s+", "", line)
-        new_block = create_block(index, line)
+        _line = re.sub(r"\s+", "", line)
+        new_block = create_block(index, _line)
         if not self.current_block:
             self.current_block = new_block
         else:
