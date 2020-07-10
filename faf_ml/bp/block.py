@@ -1,6 +1,7 @@
 import enum
 import re
-from typing import List, Callable, Optional
+from itertools import takewhile
+from typing import List, Callable, Optional, Tuple
 
 from faf_ml.bp.constant import *
 
@@ -30,9 +31,9 @@ class BlockBuilder(object):
         self.list_blocks: List[Block] = []
         self.run_time: List[Block] = []
 
-    def append_line(self, index, line):
-        _line = re.sub(r"\s+", "", line)
-        new_block = create_block(index, _line)
+    def append_line(self, line_number, raw_line):
+        _line = re.sub(r"\s+", "", raw_line)
+        new_block = create_block(line_number, _line)
         if not self.current_block:
             self.current_block = new_block
         else:
@@ -59,13 +60,15 @@ class Block(object):
     def __init__(self, name, block_type, start_line: int):
         self.structure_name = name
         self.block_type = block_type
-        self.content = []
+        self.content: List[Tuple[int, str]] = []
         self.start: int = start_line
         self.end: int = start_line
         self.parsed = {}
         self.level = 0
         self.level_block: List[Block] = []
         self.value_block: List[Block] = []
+        self.not_processed: List[Block] = []
+        self.number_objects = 0
 
     def open_block(self):
         self.level += 1
@@ -85,18 +88,19 @@ class Block(object):
         self.content.append((line_number, row))
 
     def append_block(self, block):
-        active_block = get_first_not_closed_block(self.level_block, self)
-        if block.block_type is BlockType.BLOCK or block.block_type is BlockType.OBJECT:
-            active_block.level_block.append(block)
-        else:
-            if block.block_type is not BlockType.DELIMITER and block.block_type is not BlockType.NOT_PROCESSED:
-                active_block.value_block.append(block)
-            elif block.block_type is BlockType.NOT_PROCESSED:
-                pass
-                # print("error line:[{}, {}] type {} content:{}".format(block.start, block.end, block.block_type.name,
-                #                                                       " ".join([_[1] for _ in block.content])))
+        active_block = get_first_not_complete_block(self.level_block, self)
         self + block
-        self * block
+        self.cascade_append(block)
+        if block.block_type is BlockType.BLOCK:
+            active_block.level_block.append(block)
+        elif block.block_type is BlockType.OBJECT:
+            block.structure_name = "object_{}".format(self.number_objects)
+            self.number_objects += 1
+            active_block.level_block.append(block)
+        elif block.block_type is not BlockType.DELIMITER and block.block_type is not BlockType.NOT_PROCESSED:
+            active_block.value_block.append(block)
+        else:
+            active_block.not_processed.append(block)
 
     def process(self):
         for vle_b in self.value_block:
@@ -126,27 +130,33 @@ class Block(object):
         for numb, line in other.content:
             self.append_line(numb, line)
 
-    def __mul__(self, other: 'Block'):
-        block_start_ = [_ for _ in self.level_block if not _.is_complete() and _.start is not other.start]
-        for lvl_b in block_start_:
-            lvl_b + other
-            lvl_b * other
+    def cascade_append(self, other: 'Block'):
+        for lvl_block in self.level_block:
+            if not lvl_block.is_complete():
+                lvl_block + other
+                lvl_block.cascade_append(other)
 
 
 def process(block: Block) -> Block:
     return get_process(block)(block)
 
 
-def clean_string(line: str):
-    return re.sub(r"[,{}'\s]+", "", line)
+def clean_string(raw_line: str):
+    return re.sub(r"[,{}'\s]+", "", raw_line)
 
 
-def get_first_not_closed_block(blocks: List[Block], default: Optional[Block] = None) -> Block:
-    last_block = next((b for b in blocks if not b.is_complete()), default)
-    if last_block:
-        if any([not _.is_complete() for _ in last_block.level_block]):
-            last_block = get_first_not_closed_block(last_block.level_block, last_block)
-    return last_block
+def get_first_not_complete_block(blocks: List[Block], default: Optional[Block] = None) -> Block:
+    if len(blocks) == 0:
+        return default
+    else:
+        block = blocks[0]
+        if not block.is_complete():
+            if len(block.level_block) > 0:
+                return get_first_not_complete_block(block.level_block, block)
+            else:
+                return block
+        else:
+            return get_first_not_complete_block(blocks[1:], default)
 
 
 def field_processor(block: Block) -> dict:
@@ -161,82 +171,62 @@ def value_processor(block: Block) -> str:
 
 def get_process(block: Block) -> Callable[[Block], Block]:
     switcher = {
-        # BlockType.OBJECT: object_processor,
-        # BlockType.BLOCK: block_processor,
         BlockType.VALUE: value_processor,
         BlockType.FIELD: field_processor
     }
-    return switcher.get(block.block_type, lambda x: block)
+    return switcher.get(block.block_type, lambda x: x)
 
 
-def is_block(line):
-    return True if re.match(r"\w+=\w*?\{", line, re.IGNORECASE | re.MULTILINE) else False
+def is_block(raw_line):
+    return True if re.match(r"\w+=\w*?\{", raw_line, re.IGNORECASE | re.MULTILINE) else False
 
 
-def is_global(line):
-    return True if re.match(r"\w+\{", line, re.IGNORECASE | re.MULTILINE) else False
+def is_global(raw_line):
+    return True if re.match(r"\w+\{", raw_line, re.IGNORECASE | re.MULTILINE) else False
 
 
-def is_object(line):
-    return True if re.match(r"{", line, re.IGNORECASE | re.MULTILINE) else False
+def is_object(raw_line):
+    return True if re.match(r"{", raw_line, re.IGNORECASE | re.MULTILINE) else False
 
 
-def is_field(line):
-    return KEY_VALUE_DELIMITER in line
+def is_field(raw_line):
+    return KEY_VALUE_DELIMITER in raw_line
 
 
-def is_value(line):
-    return True if re.match(r"[\w'<>_\-\.\(\)\*]+,", line, re.IGNORECASE | re.MULTILINE) else False
+def is_value(raw_line):
+    return True if re.match(r"[\w'<>_\-\.\(\)\*]+,", raw_line, re.IGNORECASE | re.MULTILINE) else False
 
 
-def is_comment(line):
-    return True if re.match(r"(#.+|--.+)", line, re.IGNORECASE | re.MULTILINE) else False
+def is_comment(raw_line):
+    return True if re.match(r"(#.+|--.+)", raw_line, re.IGNORECASE | re.MULTILINE) else False
 
 
-def remove_comment(line):
-    return re.sub(r"((?<=\-\-)|(?<=\#)).+", "", line).replace("#", "").replace("--", "")
+def remove_comment(raw_line):
+    return re.sub(r"((?<=\-\-)|(?<=\#)).+", "", raw_line).replace("#", "").replace("--", "")
 
 
-def is_delimiter(line):
-    return True if re.match(r"[},]+", line, re.IGNORECASE | re.MULTILINE) else False
+def is_delimiter(raw_line):
+    return True if re.match(r"[},]+", raw_line, re.IGNORECASE | re.MULTILINE) else False
 
 
-def create_block(line_number, line) -> Block:
-    if is_global(line):
-        key = clean_string(line)
-        inst = Block(key.strip(), BlockType.BLOCK, line_number)
-        inst.append_line(line_number, line)
-        return inst
-    elif is_block(line):
-        key, value = clean_string(line).split(KEY_VALUE_DELIMITER)
-        inst = Block(key.strip(), BlockType.BLOCK, line_number)
-        inst.append_line(line_number, line)
-        return inst
-    elif is_comment(line):
-        inst = Block(BlockType.COMMENT.name, BlockType.NOT_PROCESSED, line_number)
-        inst.append_line(line_number, line)
-        return inst
-    elif is_object(line):
-        inst = Block("{}_{}".format(BlockType.OBJECT.name, line_number), BlockType.OBJECT, line_number)
-        inst.append_line(line_number, line)
-        return inst
-    elif is_field(line):
-        key, value = clean_string(remove_comment(line)).split(KEY_VALUE_DELIMITER)
-        inst = Block(key, BlockType.FIELD, line_number)
-        inst.append_line(line_number, line)
-        return inst
-    elif is_value(line):
-        inst = Block(BlockType.VALUE.name, BlockType.VALUE, line_number)
-        inst.append_line(line_number, line)
-        return inst
-    elif is_delimiter(line):
-        inst = Block(BlockType.DELIMITER.name, BlockType.DELIMITER, line_number)
-        inst.append_line(line_number, line)
-        return inst
-    else:
-        inst = Block(BlockType.NOT_PROCESSED, BlockType.NOT_PROCESSED, line_number)
-        inst.append_line(line_number, line)
-        return inst
+def get_key_from_line(raw_line):
+    return "".join(takewhile(lambda x: x is not KEY_VALUE_DELIMITER, raw_line))
+
+
+def create_block(line_number, raw_line) -> Block:
+    get_actual_block = (
+        (is_global, Block(clean_string(raw_line), BlockType.BLOCK, line_number)),
+        (is_block, Block(get_key_from_line(clean_string(raw_line)), BlockType.BLOCK, line_number)),
+        (is_comment, Block(BlockType.COMMENT.name, BlockType.NOT_PROCESSED, line_number)),
+        (is_object, Block(BlockType.OBJECT.name, BlockType.OBJECT, line_number)),
+        (is_field, Block(get_key_from_line(clean_string(remove_comment(raw_line))), BlockType.FIELD, line_number)),
+        (is_value, Block(BlockType.VALUE.name, BlockType.VALUE, line_number)),
+        (is_delimiter, Block(BlockType.DELIMITER.name, BlockType.DELIMITER, line_number))
+    )
+    inst = next((_inst for checker, _inst in get_actual_block if checker(raw_line)),
+                Block(BlockType.NOT_PROCESSED, BlockType.NOT_PROCESSED, line_number))
+    inst.append_line(line_number, raw_line)
+    return inst
 
 
 if __name__ == '__main__':
